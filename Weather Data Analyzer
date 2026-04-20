@@ -1,0 +1,78 @@
+# Step 1: Import libraries
+import requests
+import pandas as pd
+
+# Step 2: API setup
+My_API_KEY = "b0fe324cd23103e43de509b512974020"
+BASE_URL = "http://api.openweathermap.org/data/2.5/weather"
+
+# Step 3: Create empty list (temporary storage before DataFrame)
+weather_data_list = []
+
+# Step 4: Fetch data (User input loop)
+while True:
+    city = input("Enter city name (or type 'exit' to stop): ")
+    
+    if city.lower() == "exit":
+        break
+
+    try:
+        #  1. FETCH DATA FROM API
+        params = {
+            "q": city,
+            "appid": My_API_KEY,
+            "units": "metric"
+        }
+
+        response = requests.get(BASE_URL, params=params)
+        data = response.json()
+
+        if response.status_code != 200:
+            print("Invalid city:", city)
+            continue
+
+        # Extract required fields
+        temp = data["main"]["temp"]
+        humidity = data["main"]["humidity"]
+        condition = data["weather"][0]["description"]
+
+        # Show current city data (optional but useful)
+        print(f"\nWeather in {city}:")
+        print("Temperature:", temp, "°C")
+        print("Humidity:", humidity, "%")
+        print("Condition:", condition)
+
+        # Store in list (for DataFrame later)
+        weather_data_list.append({
+            "City": city,
+            "Temperature": temp,
+            "Humidity": humidity,
+            "Condition": condition
+        })
+
+    except requests.exceptions.RequestException:
+        #  4. ERROR HANDLING
+        print("Network error occurred")
+
+#  2. STORE DATA IN PANDAS DATAFRAME
+df = pd.DataFrame(weather_data_list)
+
+#  3. CLEAN DATA
+df.dropna(inplace=True)
+
+#  3. ANALYZE DATA
+if not df.empty:
+    avg_temp = df["Temperature"].mean()
+    hottest_city = df.loc[df["Temperature"].idxmax(), "City"]
+
+    # Save to CSV
+    df.to_csv("weather_data.csv", index=False)
+
+    # Display results
+    print("\nAll Weather Data:")
+    print(df)
+
+    print("\nAverage Temperature:", avg_temp)
+    print("Hottest City:", hottest_city)
+else:
+    print("No valid data to analyze.")
